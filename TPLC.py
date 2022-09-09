@@ -20,12 +20,10 @@ class TPLCTrackingAddon(Loggable):
 		self.api = WMS_API(config=self.config)
 
 	def main(self):
-		response = self.api.get_order("17021064")
-		print(dir(response))
-		if response.status_code == 200:
-			response = self.api.set_order_to_shipped("17021064", response.etag)
-			if response.status_code == 200:
-				print(response.json())
+		response1 = self.api.get_order("17021065")
+		if response1.status_code == 200:
+			response2 = self.api.set_order_to_shipped("17021065", response1.headers.get("etag"))
+			print(response2)
 
 
 class Storage(Loggable):
@@ -179,9 +177,10 @@ class WMS_API(Loggable):
 		response = requests.request("GET", url, data = {}, headers = headers, timeout = 30.0)
 		return response
 
-	def set_order_to_shipped(self, order, etag):
+	def set_order_to_shipped(self, order_id, etag):
 		url = f"https://secure-wms.com/orders/{order_id}"
-		payload = "{\"notes\":  \"Hello world\"}"
+		payload = "{\"ReferenceNum\": \"1234\", \"SmallParcelShipDate\": \"2022-01-01\"}"
+		#payload = "{\"Notes\":  \"Hello world\",\"ReferenceNum\": \"Test-0342\"}"
 		headers = {
 			"Content-Type": "application/json; charset=utf-8",
 			"Accept": "application/json",
@@ -191,6 +190,8 @@ class WMS_API(Loggable):
 			"Authorization": "Bearer " + self.config.data["token"]["contents"]["access_token"],
 			"If-Match": etag
 		}
+		response = requests.request("PUT", url, data = payload, headers = headers, timeout = 30.0)
+		return response
 
 
 def init_logging():
