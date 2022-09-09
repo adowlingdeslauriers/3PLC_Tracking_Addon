@@ -20,11 +20,12 @@ class TPLCTrackingAddon(Loggable):
 		self.api = WMS_API(config=self.config)
 
 	def main(self):
-		response1 = self.api.get_order("17021065")
-		if response1.status_code == 200:
-			response2 = self.api.set_order_to_shipped("17021065", response1.headers.get("etag"))
-			print(response2)
-
+		response_1 = self.api.get_order("18484135")
+		print(json.dumps(response_1.json(), indent=1))
+		
+		#if response_1.status_code == 200:
+		#	response_2 = self.api.set_order_to_shipped("17021065", response_1.headers.get("etag"))
+		#	print(json.dumps(response_2.json(), indent=1))
 
 class Storage(Loggable):
 	'''Allows access to data stored on disk'''
@@ -161,11 +162,10 @@ class WMS_API(Loggable):
 		text_len = len(request.text)
 		approx_len = method_len + url_len + headers_len + body_len + text_len
 		self.logger.info(f"Used approx. {str(approx_len)} bytes")
-		self.config.data["approx_bytes_used"] += approx_len
 		return approx_len
 
 	def get_order(self, order_id):
-		url = f"https://secure-wms.com/orders/{order_id}"
+		url = f"https://secure-wms.com/orders/{order_id}?detail=all"
 		headers = {
 			"Content-Type": "application/json; charset=utf-8",
 			"Accept": "application/json",
@@ -175,11 +175,12 @@ class WMS_API(Loggable):
 			"Authorization": "Bearer " + self.config.data["token"]["contents"]["access_token"]
 		}
 		response = requests.request("GET", url, data = {}, headers = headers, timeout = 30.0)
+		self.log_data_usage(response)
 		return response
 
 	def set_order_to_shipped(self, order_id, etag):
-		url = f"https://secure-wms.com/orders/{order_id}"
-		payload = "{\"ReferenceNum\": \"1234\", \"SmallParcelShipDate\": \"2022-01-01\"}"
+		url = f"https://secure-wms.com/orders/{order_id}/packages"
+		payload = "{\"package\": [{\"packageId\": 2554,\"packageTypeId\": 2,\"length\": 8,\"width\": 7.5,\"height\": 3,\"weight\": 0.25,\"codAmount\": 0,\"insuredAmount\": 0,\"TrackingNumber\":\"124789\",\"createDate\": \"2019-04-30T21:40:45.69\",\"readOnly\": {\"oversize\": false,\"cod\": false,\"ucc128\": 1110},\"packagecontents\": [{\"packageContentId\": 2560,\"packageId\": 2554,\"orderItemId\": 294,\"receiveItemId\": 3,\"qty\": 1,\"lotNumber\": \"\",\"serialNumber\": \"\",\"createDate\": \"2019-04-30T21:40:45.69\",\"serialNumbers\": []}]},{\"packageId\": 2555,\"packageTypeId\": 2,\"length\": 8,\"width\": 7.5,\"height\": 3,\"weight\": 0.25,\"codAmount\": 0,\"insuredAmount\": 0,\"TrackingNumber\":\"124789\",\"createDate\": \"2019-04-30T21:40:45.69\",\"readOnly\": {\"oversize\": false,\"cod\": false,\"ucc128\": 1109},\"packagecontents\": [{\"packageContentId\": 2561,\"packageId\": 2555,\"orderItemId\": 294,\"receiveItemId\": 3,\"qty\": 1,\"lotNumber\": \"\",\"serialNumber\": \"\",\"createDate\": \"2019-04-30T21:40:45.69\",\"serialNumbers\": []}]},{\"packageId\": 2556,\"packageTypeId\": 2,\"length\": 8,\"width\": 7.5,\"height\": 3,\"weight\": 0.25,\"codAmount\": 0,\"insuredAmount\": 0,\"TrackingNumber\":\"124789\",\"createDate\": \"2019-04-30T21:40:45.69\",\"readOnly\": {\"oversize\": false,\"cod\": false,\"ucc128\": 1108},\"packagecontent\": [{\"packageContentId\": 2562,\"packageId\": 2556,\"orderItemId\": 294,\"receiveItemId\": 3,\"qty\": 1,\"lotNumber\": \"\",\"serialNumber\": \"\",\"createDate\": \"2019-04-30T21:40:45.69\",\"serialNumbers\": []}]}]}"
 		#payload = "{\"Notes\":  \"Hello world\",\"ReferenceNum\": \"Test-0342\"}"
 		headers = {
 			"Content-Type": "application/json; charset=utf-8",
@@ -192,7 +193,6 @@ class WMS_API(Loggable):
 		}
 		response = requests.request("PUT", url, data = payload, headers = headers, timeout = 30.0)
 		return response
-
 
 def init_logging():
 	logger = logging.getLogger()
